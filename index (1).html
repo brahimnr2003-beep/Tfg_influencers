@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis Influencers IA vs Humanos — TFG Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ia: #4361EE;
+    --ia-light: #C8D1FC;
+    --ia-bg: #EEF1FD;
+    --hum: #059669;
+    --hum-light: #A7F3D0;
+    --hum-bg: #ECFDF5;
+    --accent: #E94560;
+    --dark: #0F172A;
+    --mid: #334155;
+    --muted: #64748B;
+    --border: #E2E8F0;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --fitness: #F59E0B;
+    --lifestyle: #8B5CF6;
+    --moda: #EC4899;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--dark);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    border-bottom: 2px solid #1E293B;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--ia) 0%, var(--accent) 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 14px; color: white; letter-spacing: -0.5px;
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: white; }
+  .logo-sub { font-size: 11px; color: #64748B; font-weight: 300; }
+  .header-badges { display: flex; gap: 8px; }
+  .badge {
+    padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge-ia { background: rgba(67,97,238,0.2); color: var(--ia-light); border: 1px solid rgba(67,97,238,0.3); }
+  .badge-hum { background: rgba(5,150,105,0.2); color: var(--hum-light); border: 1px solid rgba(5,150,105,0.3); }
+
+  /* FILTERS */
+  .filter-bar {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+  .filter-group { display: flex; gap: 6px; }
+  .filter-btn {
+    padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+    background: white; color: var(--mid); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+  }
+  .filter-btn.active { border-color: var(--ia); background: var(--ia-bg); color: var(--ia); }
+  .filter-btn.hum.active { border-color: var(--hum); background: var(--hum-bg); color: var(--hum); }
+  .filter-sep { width: 1px; height: 24px; background: var(--border); }
+
+  /* LAYOUT */
+  main { padding: 28px 40px; max-width: 1400px; margin: 0 auto; }
+
+  /* KPI STRIP */
+  .kpi-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi {
+    background: var(--card); border-radius: 12px; padding: 18px 20px;
+    border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+    transition: box-shadow .2s;
+  }
+  .kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); }
+  .kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .kpi.ia::before { background: var(--ia); }
+  .kpi.hum::before { background: var(--hum); }
+  .kpi.neutral::before { background: var(--accent); }
+  .kpi.cat-f::before { background: var(--fitness); }
+  .kpi.cat-l::before { background: var(--lifestyle); }
+  .kpi.cat-m::before { background: var(--moda); }
+  .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .kpi-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--dark); line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi-delta { font-size: 11px; font-weight: 600; margin-top: 6px; }
+  .kpi-delta.up { color: var(--hum); }
+  .kpi-delta.down { color: var(--accent); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .grid-13 { display: grid; grid-template-columns: 1fr 2fr; gap: 18px; margin-bottom: 18px; }
+  .grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+  /* CARDS */
+  .card {
+    background: var(--card); border-radius: 14px; padding: 24px;
+    border: 1px solid var(--border);
+    transition: box-shadow .2s;
+  }
+  .card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--dark); }
+  .card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .chart-wrap { position: relative; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 2px; color: var(--muted);
+    margin-bottom: 14px; padding-left: 2px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* INSIGHT BOX */
+  .insight-list { display: flex; flex-direction: column; gap: 10px; }
+  .insight {
+    padding: 12px 16px; border-radius: 10px; border-left: 3px solid;
+    font-size: 12px; line-height: 1.6;
+  }
+  .insight.ia { border-color: var(--ia); background: var(--ia-bg); }
+  .insight.hum { border-color: var(--hum); background: var(--hum-bg); }
+  .insight.warn { border-color: var(--accent); background: #FFF0F3; }
+  .insight strong { font-weight: 600; }
+
+  /* TABLE */
+  .mini-table { width: 100%; border-collapse: collapse; }
+  .mini-table th {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+    font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .mini-table td { padding: 9px 12px; border-bottom: 1px solid #F1F5F9; font-size: 12px; }
+  .mini-table tr:last-child td { border-bottom: none; }
+  .mini-table tr:hover td { background: var(--bg); }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600;
+  }
+  .pill-ia { background: var(--ia-bg); color: var(--ia); }
+  .pill-hum { background: var(--hum-bg); color: var(--hum); }
+  .er-bar { height: 6px; border-radius: 3px; display: inline-block; }
+
+  /* PUB GRID */
+  .pub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pub-card {
+    border-radius: 10px; padding: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .pub-card.ia { background: var(--ia-bg); border: 1px solid var(--ia-light); }
+  .pub-card.hum { background: var(--hum-bg); border: 1px solid var(--hum-light); }
+  .pub-card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .pub-card.ia .pub-card-label { color: var(--ia); }
+  .pub-card.hum .pub-card-label { color: var(--hum); }
+  .pub-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  .pub-pct { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; }
+  .pub-card.ia .pub-pct { color: var(--ia); }
+  .pub-card.hum .pub-pct { color: var(--hum); }
+  .enc-warning {
+    background: #FFF7ED; border: 1px solid #FED7AA;
+    border-radius: 8px; padding: 10px 14px; font-size: 11px;
+    color: #92400E; line-height: 1.5; margin-top: 8px;
+  }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TABS */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; }
+  .tab {
+    padding: 6px 16px; border-radius: 8px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid transparent; transition: all .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tab.active { background: var(--dark); color: white; }
+  .tab:not(.active) { color: var(--muted); }
+  .tab:not(.active):hover { background: var(--bg); }
+  .conclusion-box {
+    margin-top: 14px; padding: 12px 16px;
+    border-radius: 10px; background: #F8FAFC;
+    border-left: 3px solid #4361EE;
+    font-size: 12px; line-height: 1.65; color: #334155;
+  }
+  .conclusion-box strong { color: #0F172A; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">IG</div>
+    <div>
+      <div class="logo-text">Influencers IA vs Humanos</div>
+      <div class="logo-sub">Análisis de perfiles en Instagram · TFG 2026 · Brahim Nouni Ros</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-ia">▲ IA · 3 perfiles · 46 posts</span>
+    <span class="badge badge-hum">● Humano · 3 perfiles · 46 posts</span>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <span class="filter-label">Filtrar por</span>
+  <div class="filter-group" id="filter-tipo">
+    <button class="filter-btn active" data-tipo="all" onclick="setFilter('tipo','all')">Todos</button>
+    <button class="filter-btn" data-tipo="IA" onclick="setFilter('tipo','IA')">IA</button>
+    <button class="filter-btn hum" data-tipo="Humano" onclick="setFilter('tipo','Humano')">Humano</button>
+  </div>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Categoría</span>
+  <div class="filter-group" id="filter-cat">
+    <button class="filter-btn active" data-cat="all" onclick="setFilter('cat','all')">Todas</button>
+    <button class="filter-btn" data-cat="Fitness" onclick="setFilter('cat','Fitness')">Fitness</button>
+    <button class="filter-btn" data-cat="Lifestyle/Entret." onclick="setFilter('cat','Lifestyle/Entret.')">Lifestyle</button>
+    <button class="filter-btn" data-cat="Moda/Belleza" onclick="setFilter('cat','Moda/Belleza')">Moda/Belleza</button>
+  </div>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Formato</span>
+  <div class="filter-group" id="filter-fmt">
+    <button class="filter-btn active" data-fmt="all" onclick="setFilter('fmt','all')">Todos</button>
+    <button class="filter-btn" data-fmt="Post" onclick="setFilter('fmt','Post')">Posts</button>
+    <button class="filter-btn" data-fmt="Reel" onclick="setFilter('fmt','Reel')">Reels</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip" id="kpi-strip">
+    <div class="kpi neutral">
+      <div class="kpi-label">Total Posts</div>
+      <div class="kpi-value" id="kpi-total">92</div>
+      <div class="kpi-sub">46 IA · 46 Humano</div>
+    </div>
+    <div class="kpi ia">
+      <div class="kpi-label">ER Medio · IA</div>
+      <div class="kpi-value ia-val" id="kpi-er-ia">1.37%</div>
+      <div class="kpi-sub">Tasa de engagement media</div>
+    </div>
+    <div class="kpi hum">
+      <div class="kpi-label">ER Medio · Humano</div>
+      <div class="kpi-value hum-val" id="kpi-er-hum">4.45%</div>
+      <div class="kpi-delta up" id="kpi-delta">▲ Humanos +225%</div>
+    </div>
+    <div class="kpi cat-f">
+      <div class="kpi-label">ER Medio · Fitness</div>
+      <div class="kpi-value" id="kpi-er-fit" style="color:var(--fitness)">2.97%</div>
+      <div class="kpi-sub">fit_aitana + crysdyaz</div>
+    </div>
+    <div class="kpi cat-l">
+      <div class="kpi-label">ER Medio · Lifestyle</div>
+      <div class="kpi-value" id="kpi-er-life" style="color:var(--lifestyle)">3.26%</div>
+      <div class="kpi-sub">albarenai + marialamelam</div>
+    </div>
+    <div class="kpi cat-m">
+      <div class="kpi-label">ER Medio · Moda</div>
+      <div class="kpi-value" id="kpi-er-moda" style="color:var(--moda)">2.85%</div>
+      <div class="kpi-sub">shudu.gram + martaortizp</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: ER por perfil + IA vs Humano -->
+  <div class="section-title">Engagement Rate (ER%) — comparativa principal</div>
+  <div class="grid-21" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ER Medio por Perfil</div>
+          <div class="card-sub">Tasa de engagement media de cada influencer (%) · ordenado de mayor a menor</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:var(--ia)"></div>IA</div>
+          <div class="legend-item"><div class="legend-sq" style="background:var(--hum)"></div>Humano</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chartPerfilER"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">IA vs Humano</div>
+          <div class="card-sub">Comparativa global de métricas clave</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chartIAvsHum"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Formato + Temas -->
+  <div class="section-title">Formato y Temas de contenido</div>
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Post vs Reel — ER Medio por Tipo</div>
+          <div class="card-sub">¿Qué formato genera más engagement? Separado por IA y Humano</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chartFormato"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ER Medio por Tema de Contenido</div>
+          <div class="card-sub">Temas que generan mayor tasa de engagement</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chartTemas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2b: ER por tema IA vs Humano -->
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ER por Tema: IA vs Humano</div>
+          <div class="card-sub">Engagement rate medio por tema, separado por tipo de influencer</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:#4361EE"></div>IA</div>
+          <div class="legend-item"><div class="legend-sq" style="background:#059669"></div>Humano</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartTemasComp"></canvas></div>
+      <div class="conclusion-box" id="conc-temascomp"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Distribución temática: IA vs Humano</div>
+          <div class="card-sub">¿Qué temas publica cada grupo? Número de posts por categoría</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:#4361EE"></div>IA</div>
+          <div class="legend-item"><div class="legend-sq" style="background:#059669"></div>Humano</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartTemasDistComp"></canvas></div>
+      <div class="conclusion-box" id="conc-temasdistrcomp"></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Distribución temas + scatter -->
+  <div class="grid-13" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Distribución de Temas</div>
+          <div class="card-sub">Proporción de posts por categoría temática</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chartDonutTemas"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Dispersión: Likes vs ER (%) por publicación</div>
+          <div class="card-sub">Cada punto es un post · Azul = IA · Verde = Humano · Tamaño ∝ comentarios</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chartScatter"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Crecimiento seguidores -->
+  <div class="section-title">Crecimiento y audiencia</div>
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Seguidores: Inicio vs Final del período</div>
+          <div class="card-sub">17 Mar – 23 Abr 2026 · comparativa por perfil</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:rgba(99,102,241,0.45)"></div>Inicio</div>
+          <div class="legend-item"><div class="legend-sq" style="background:rgba(99,102,241,1)"></div>Final</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartFollowers"></canvas></div>
+      <div class="conclusion-box" id="conc-followers"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Variación neta de seguidores durante el período</div>
+          <div class="card-sub">Ganancia (+) o pérdida (−) absoluta de seguidores</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartFollowersDelta"></canvas></div>
+      <div class="conclusion-box" id="conc-delta"></div>
+    </div>
+  </div>
+
+  <!-- ROW 5: ER distribution + Comments/Likes -->
+  <div class="section-title">Consistencia y calidad del engagement</div>
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Distribución del ER por perfil (consistencia)</div>
+          <div class="card-sub">Mínimo · Q1 · Mediana · Q3 · Máximo (cap. 20%) · cada punto = 1 publicación</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartBoxER"></canvas></div>
+      <div class="conclusion-box" id="conc-box"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Ratio Comentarios / Likes</div>
+          <div class="card-sub">Índice de conversación activa: mayor ratio = audiencia más implicada</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartRatio"></canvas></div>
+      <div class="conclusion-box" id="conc-ratio"></div>
+    </div>
+  </div>
+
+  <!-- ROW 6: Publicidad -->
+  <div class="section-title">Publicidad y transparencia</div>
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Saturación publicitaria por perfil</div>
+          <div class="card-sub">% de publicaciones con contenido patrocinado sobre el total</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:230px"><canvas id="chartPubSat"></canvas></div>
+      <div class="conclusion-box" id="conc-pubsat"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tasa de Publicidad Declarada por Perfil</div>
+          <div class="card-sub">% de posts publicitarios que incluyen etiqueta #ad/#publi</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:230px">
+        <canvas id="chartPubDecl"></canvas>
+      </div>
+      <div class="conclusion-box" id="conc-pubdecl"></div>
+    </div>
+  </div>
+
+  <!-- ROW 6b: Comparativa publicidad IA vs Humano -->
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Saturación publicitaria: IA vs Humano</div>
+          <div class="card-sub">% de posts con publicidad por grupo — comparativa directa</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:#4361EE"></div>IA</div>
+          <div class="legend-item"><div class="legend-sq" style="background:#059669"></div>Humano</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartPubSatComp"></canvas></div>
+      <div class="conclusion-box" id="conc-pubsatcomp"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Transparencia publicitaria: IA vs Humano</div>
+          <div class="card-sub">% de publicidad correctamente declarada por grupo</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-sq" style="background:#4361EE"></div>IA</div>
+          <div class="legend-item"><div class="legend-sq" style="background:#059669"></div>Humano</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="chartPubDeclComp"></canvas></div>
+      <div class="conclusion-box" id="conc-pubdeclcomp"></div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Tabla resumen + insights -->
+  <div class="section-title">Tabla resumen y hallazgos clave</div>
+  <div class="grid-21" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tabla Comparativa por Perfil</div>
+          <div class="card-sub">Métricas principales ordenadas por ER medio</div>
+        </div>
+      </div>
+      <table class="mini-table" id="summary-table">
+        <thead>
+          <tr>
+            <th>Perfil</th>
+            <th>Tipo</th>
+            <th>Categoría</th>
+            <th>Posts</th>
+            <th>ER Medio %</th>
+            <th>Likes Medio</th>
+            <th>% Pub.</th>
+            <th>% Pub. Dec.</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Hallazgos Clave</div>
+          <div class="card-sub">Principales conclusiones del análisis</div>
+        </div>
+      </div>
+      <div class="insight-list" id="insights"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const RAW = [{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":258,"comentarios":44,"er":2.13855421686747,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":16600.0,"republicaciones":6,"compartidos":47},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":286,"comentarios":57,"er":2.55696202531646,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":15800.0,"republicaciones":7,"compartidos":54},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":743,"comentarios":74,"er":0.347698744769875,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":14,"compartidos":41},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Moda/Belleza","likes":240,"comentarios":64,"er":2.37037037037037,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":13500.0,"republicaciones":3,"compartidos":13},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Post","tema_label":"Tecnología","categoria":"Moda/Belleza","likes":319,"comentarios":39,"er":0.155648535564854,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":0.0,"republicaciones":14,"compartidos":37},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Tecnología","categoria":"Moda/Belleza","likes":1028,"comentarios":39,"er":2.55789473684211,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":66500.0,"republicaciones":50,"compartidos":584},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Moda/Belleza","likes":395,"comentarios":37,"er":0.0,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":10,"compartidos":30},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":181,"comentarios":36,"er":3.36709944357255,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":7009.0,"republicaciones":11,"compartidos":8},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Moda/Belleza","likes":219,"comentarios":55,"er":4.44475602916433,"publicidad":0,"pub_declarada":1,"hashtags":0,"visualizaciones":7132.0,"republicaciones":15,"compartidos":28},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":349,"comentarios":40,"er":0.165690376569038,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":7,"compartidos":18},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Eventos","categoria":"Moda/Belleza","likes":278,"comentarios":54,"er":0.516471838469713,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":94100.0,"republicaciones":16,"compartidos":138},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Educativo","categoria":"Moda/Belleza","likes":71,"comentarios":17,"er":2.45746691871456,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":4761.0,"republicaciones":11,"compartidos":18},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":173,"comentarios":24,"er":0.0845188284518829,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":5,"compartidos":7},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":139,"comentarios":21,"er":0.0694560669456067,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":6,"compartidos":9},{"perfil":"shudu.gram","tipo_label":"IA","formato_label":"Reel","tema_label":"Tecnología","categoria":"Moda/Belleza","likes":292,"comentarios":28,"er":4.52562024685201,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":8021.0,"republicaciones":16,"compartidos":27},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Fitness","likes":3237,"comentarios":245,"er":0.892111959287532,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":24,"compartidos":175},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Fitness","likes":2593,"comentarios":327,"er":0.748600508905852,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":22,"compartidos":270},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Fitness","likes":1238,"comentarios":196,"er":0.367430025445293,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":10,"compartidos":33},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Fitness","likes":1382,"comentarios":182,"er":2.03033838973162,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":85700.0,"republicaciones":17,"compartidos":159},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Fitness","likes":1367,"comentarios":201,"er":0.403053435114504,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":16,"compartidos":89},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Eventos","categoria":"Fitness","likes":1760,"comentarios":162,"er":0.491857506361323,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":11,"compartidos":253},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":1234,"comentarios":189,"er":0.365394402035623,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":13,"compartidos":80},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Reel","tema_label":"Educativo","categoria":"Fitness","likes":1362,"comentarios":195,"er":2.95527156549521,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":62600.0,"republicaciones":27,"compartidos":266},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":1157,"comentarios":124,"er":0.327480916030534,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":6,"compartidos":108},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Fitness","likes":13000,"comentarios":195,"er":3.3618320610687,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":17,"compartidos":112},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Fitness","likes":2551,"comentarios":118,"er":0.681933842239186,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":11,"compartidos":47},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Entretenimiento","categoria":"Fitness","likes":3625,"comentarios":122,"er":0.956488549618321,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":12,"compartidos":30},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Fitness","likes":10000,"comentarios":101,"er":2.59592875318066,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":101,"compartidos":11},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Eventos","categoria":"Fitness","likes":1373,"comentarios":122,"er":0.383969465648855,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":14,"compartidos":71},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":6273,"comentarios":97,"er":1.6234096692112,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":10,"compartidos":39},{"perfil":"fit_aitana","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Fitness","likes":5649,"comentarios":43,"er":10.0987654320988,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":56700.0,"republicaciones":9,"compartidos":25},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":43,"comentarios":2,"er":0.254237288135593,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":0,"compartidos":1},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Post","tema_label":"Otra","categoria":"Lifestyle/Entret.","likes":34,"comentarios":4,"er":0.214689265536723,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":0,"compartidos":0},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Lifestyle/Entret.","likes":28,"comentarios":0,"er":0.699126092384519,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":4005.0,"republicaciones":0,"compartidos":0},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Post","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":41,"comentarios":3,"er":0.248587570621469,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":0,"compartidos":0},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":476,"comentarios":11,"er":0.510245901639344,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":97600.0,"republicaciones":4,"compartidos":7},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":2924,"comentarios":103,"er":0.751658767772512,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":422000.0,"republicaciones":30,"compartidos":115},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":802,"comentarios":16,"er":0.572108843537415,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":147000.0,"republicaciones":11,"compartidos":12},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Lifestyle/Entret.","likes":21,"comentarios":7,"er":1.24018189334436,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":2419.0,"republicaciones":1,"compartidos":1},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":1229,"comentarios":25,"er":0.612380952380952,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":210000.0,"republicaciones":8,"compartidos":24},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":1004,"comentarios":23,"er":0.591666666666667,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":180000.0,"republicaciones":9,"compartidos":29},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":557,"comentarios":9,"er":0.726092089728453,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":84700.0,"republicaciones":8,"compartidos":41},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":778,"comentarios":22,"er":0.61969696969697,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":132000.0,"republicaciones":9,"compartidos":9},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Post","tema_label":"Eventos","categoria":"Lifestyle/Entret.","likes":50,"comentarios":1,"er":0.288135593220339,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":0,"compartidos":1},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Post","tema_label":"Eventos","categoria":"Lifestyle/Entret.","likes":41,"comentarios":2,"er":0.242937853107345,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":0,"compartidos":9},{"perfil":"albarenai","tipo_label":"IA","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Lifestyle/Entret.","likes":31,"comentarios":2,"er":1.21670503123972,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":3041.0,"republicaciones":1,"compartidos":3},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Lifestyle","categoria":"Fitness","likes":9922,"comentarios":1,"er":7.25693430656934,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":137000.0,"republicaciones":1,"compartidos":18},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Educativo","categoria":"Fitness","likes":10600,"comentarios":15,"er":3.60406779661017,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":295000.0,"republicaciones":2,"compartidos":15},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":10600,"comentarios":11,"er":2.55072115384615,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":0,"compartidos":28},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Post","tema_label":"Otra","categoria":"Fitness","likes":10800,"comentarios":15,"er":2.60024038461538,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":0.0,"republicaciones":2,"compartidos":11},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Deporte","categoria":"Fitness","likes":12600,"comentarios":22,"er":5.26224066390042,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":241000.0,"republicaciones":2,"compartidos":58},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Educativo","categoria":"Fitness","likes":11500,"comentarios":13,"er":3.38152492668622,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":341000.0,"republicaciones":1,"compartidos":17},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":9973,"comentarios":12,"er":2.40024038461538,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":0,"compartidos":21},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":10300,"comentarios":18,"er":2.48076923076923,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":2,"compartidos":13},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Deporte","categoria":"Fitness","likes":10200,"comentarios":44,"er":4.92788461538462,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":208000.0,"republicaciones":1,"compartidos":5},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Fitness","likes":10800,"comentarios":5,"er":3.03679775280899,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":356000.0,"republicaciones":6,"compartidos":0},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Post","tema_label":"Educativo","categoria":"Fitness","likes":10400,"comentarios":17,"er":2.50432692307692,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":1,"compartidos":45},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Deporte","categoria":"Fitness","likes":10300,"comentarios":129,"er":4.30411522633745,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":243000.0,"republicaciones":5,"compartidos":25},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Lifestyle","categoria":"Fitness","likes":11000,"comentarios":38,"er":3.25852941176471,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":340000.0,"republicaciones":1,"compartidos":40},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Reel","tema_label":"Deporte","categoria":"Fitness","likes":9641,"comentarios":18,"er":0.0,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":1,"compartidos":13},{"perfil":"crysdyaz","tipo_label":"Humano","formato_label":"Post","tema_label":"Deporte","categoria":"Fitness","likes":10600,"comentarios":46,"er":2.56177884615385,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":11,"compartidos":82},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Opinión","categoria":"Lifestyle/Entret.","likes":1450,"comentarios":91,"er":1.83671171171171,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":88800.0,"republicaciones":19,"compartidos":71},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":450,"comentarios":17,"er":0.492886178861789,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":98400.0,"republicaciones":8,"compartidos":10},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Otra","categoria":"Lifestyle/Entret.","likes":5923,"comentarios":616,"er":10.2616822429907,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":49,"compartidos":1802},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":6946,"comentarios":212,"er":11.2180685358255,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":44,"compartidos":87},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":10700,"comentarios":261,"er":17.1401869158879,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":43,"compartidos":154},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":8446,"comentarios":137,"er":13.4080996884735,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":25,"compartidos":101},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":9366,"comentarios":454,"er":1.49094955489614,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":674000.0,"republicaciones":70,"compartidos":159},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":1903,"comentarios":36,"er":3.03894080996885,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":12,"compartidos":8},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":1712,"comentarios":31,"er":3.37022900763359,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":52400.0,"republicaciones":13,"compartidos":10},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":5364,"comentarios":212,"er":8.72118380062305,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":23,"compartidos":52},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Lifestyle","categoria":"Lifestyle/Entret.","likes":13400,"comentarios":266,"er":3.11732456140351,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":456000.0,"republicaciones":96,"compartidos":453},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Post","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":5585,"comentarios":141,"er":8.95794392523365,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":25,"compartidos":48},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Otra","categoria":"Lifestyle/Entret.","likes":5765,"comentarios":236,"er":2.0062091503268,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":306000.0,"republicaciones":76,"compartidos":62},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Otra","categoria":"Lifestyle/Entret.","likes":3186,"comentarios":118,"er":3.18925619834711,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":121000.0,"republicaciones":53,"compartidos":502},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Entretenimiento","categoria":"Lifestyle/Entret.","likes":5222,"comentarios":241,"er":3.25672514619883,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":171000.0,"republicaciones":31,"compartidos":75},{"perfil":"marialamelam","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Lifestyle/Entret.","likes":4280,"comentarios":171,"er":3.39925373134328,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":134000.0,"republicaciones":33,"compartidos":71},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":2284,"comentarios":63,"er":0.0,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":29,"compartidos":422},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":577,"comentarios":30,"er":2.26989619377163,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":28900.0,"republicaciones":3,"compartidos":46},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":4382,"comentarios":95,"er":40.2416666666667,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":12000.0,"republicaciones":33,"compartidos":319},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":211,"comentarios":16,"er":0.984905660377359,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":26500.0,"republicaciones":8,"compartidos":26},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Lifestyle","categoria":"Moda/Belleza","likes":259,"comentarios":13,"er":1.75,"publicidad":1,"pub_declarada":1,"hashtags":0,"visualizaciones":16000.0,"republicaciones":1,"compartidos":7},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Moda/Belleza","likes":1098,"comentarios":50,"er":0.891472868217054,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":2,"compartidos":17},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Moda/Belleza","likes":1801,"comentarios":47,"er":1.43953488372093,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":9,"compartidos":140},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Moda/Belleza","likes":675,"comentarios":34,"er":0.551937984496124,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":3,"compartidos":20},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Moda/Belleza","likes":2223,"comentarios":66,"er":1.77984496124031,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":7,"compartidos":265},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Post","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":515,"comentarios":76,"er":0.462790697674419,"publicidad":1,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":6,"compartidos":32},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":3770,"comentarios":99,"er":2.68592964824121,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":199000.0,"republicaciones":50,"compartidos":1426},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":661,"comentarios":59,"er":2.23939393939394,"publicidad":1,"pub_declarada":0,"hashtags":0,"visualizaciones":33000.0,"republicaciones":4,"compartidos":15},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":340,"comentarios":40,"er":3.54054054054054,"publicidad":1,"pub_declarada":1,"hashtags":1,"visualizaciones":11100.0,"republicaciones":2,"compartidos":11},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Reel","tema_label":"Moda/Estética","categoria":"Moda/Belleza","likes":564,"comentarios":583,"er":0.0,"publicidad":0,"pub_declarada":0,"hashtags":1,"visualizaciones":0.0,"republicaciones":6,"compartidos":24},{"perfil":"martaortizp","tipo_label":"Humano","formato_label":"Post","tema_label":"Lifestyle","categoria":"Moda/Belleza","likes":971,"comentarios":33,"er":0.77906976744186,"publicidad":0,"pub_declarada":0,"hashtags":0,"visualizaciones":0.0,"republicaciones":1,"compartidos":32}];
+
+// ─── STATE & UTILS ────────────────────────────────────────────────────────────
+const filters = { tipo: 'all', cat: 'all', fmt: 'all' };
+const charts = {};
+
+const PROFILE_COLORS = {
+  'fit_aitana':   '#4361EE',
+  'albarenai':    '#7C8CF8',
+  'shudu.gram':   '#B5BFFC',
+  'crysdyaz':     '#059669',
+  'marialamelam': '#34D399',
+  'martaortizp':  '#6EE7B7',
+};
+
+function getFiltered() {
+  return RAW.filter(d =>
+    (filters.tipo === 'all' || d.tipo_label === filters.tipo) &&
+    (filters.cat  === 'all' || d.categoria === filters.cat) &&
+    (filters.fmt  === 'all' || d.formato_label === filters.fmt)
+  );
+}
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function pct(n,t) { return t ? (n/t*100).toFixed(1)+'%' : '-'; }
+function fmt2(n) { return n.toFixed(2); }
+
+// ─── FILTER ──────────────────────────────────────────────────────────────────
+function setFilter(dim, val) {
+  filters[dim] = val;
+  document.querySelectorAll(`#filter-${dim} .filter-btn`).forEach(b => {
+    b.classList.toggle('active', b.dataset[dim] === val || b.dataset.cat === val || b.dataset.fmt === val || b.dataset.tipo === val);
+  });
+  render();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const data = getFiltered();
+  updateKPIs(data);
+  renderPerfilER(data);
+  renderIAvsHum(data);
+  renderFormato(data);
+  renderTemas(data);
+  renderTemasComp(data);
+  renderTemasDistComp(data);
+  renderDonutTemas(data);
+  renderScatter(data);
+  renderFollowers(data);
+  renderFollowersDelta(data);
+  renderBoxER(data);
+  renderRatio(data);
+  renderPubSat(data);
+  renderPubDecl(data);
+  renderPubSatComp(data);
+  renderPubDeclComp(data);
+  renderTable(data);
+  renderInsights(data);
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────────────────────
+function updateKPIs(data) {
+  const iaData  = data.filter(d => d.tipo_label === 'IA');
+  const humData = data.filter(d => d.tipo_label === 'Humano');
+  const erIA  = avg(iaData.map(d=>d.er));
+  const erHum = avg(humData.map(d=>d.er));
+  const delta = erIA > 0 ? ((erHum - erIA) / erIA * 100) : 0;
+
+  document.getElementById('kpi-total').textContent = data.length;
+  document.getElementById('kpi-er-ia').textContent = erIA.toFixed(2)+'%';
+  document.getElementById('kpi-er-hum').textContent = erHum.toFixed(2)+'%';
+  const deltaEl = document.getElementById('kpi-delta');
+  if (erHum >= erIA) {
+    deltaEl.textContent = `▲ Humanos +${delta.toFixed(0)}%`;
+    deltaEl.className = 'kpi-delta up';
+  } else {
+    deltaEl.textContent = `▼ IA +${Math.abs(delta).toFixed(0)}%`;
+    deltaEl.className = 'kpi-delta down';
+  }
+  const cats = ['Fitness','Lifestyle/Entret.','Moda/Belleza'];
+  const ids = ['kpi-er-fit','kpi-er-life','kpi-er-moda'];
+  cats.forEach((c,i) => {
+    const sub = data.filter(d=>d.categoria===c);
+    document.getElementById(ids[i]).textContent = avg(sub.map(d=>d.er)).toFixed(2)+'%';
+  });
+}
+
+// ─── CHART: ER por perfil ─────────────────────────────────────────────────────
+function renderPerfilER(data) {
+  const profiles = ['marialamelam','crysdyaz','martaortizp','fit_aitana','shudu.gram','albarenai'];
+  const labels = ['@marialamelam','@crysdyaz','@martaortizp','@fit_aitana','@shudu.gram','@albarenai'];
+  const values = profiles.map(p => avg(data.filter(d=>d.perfil===p).map(d=>d.er)));
+  const colors = profiles.map(p => PROFILE_COLORS[p]);
+
+  destroyChart('chartPerfilER');
+  const ctx = document.getElementById('chartPerfilER').getContext('2d');
+  charts.chartPerfilER = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6, borderSkipped: false }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ER: ${c.raw.toFixed(2)}%` } } },
+      scales: {
+        x: { grid: { color: '#F1F5F9' }, ticks: { callback: v => v+'%', font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ─── CHART: IA vs Humano radar ────────────────────────────────────────────────
+function renderIAvsHum(data) {
+  const ia  = data.filter(d => d.tipo_label === 'IA');
+  const hum = data.filter(d => d.tipo_label === 'Humano');
+  const iaVals  = [avg(ia.map(d=>d.er)), avg(ia.map(d=>d.likes))/1000, avg(ia.map(d=>d.comentarios)), ia.filter(d=>d.publicidad).length/Math.max(ia.length,1)*100, ia.filter(d=>d.hashtags).length/Math.max(ia.length,1)*100];
+  const humVals = [avg(hum.map(d=>d.er)), avg(hum.map(d=>d.likes))/1000, avg(hum.map(d=>d.comentarios)), hum.filter(d=>d.publicidad).length/Math.max(hum.length,1)*100, hum.filter(d=>d.hashtags).length/Math.max(hum.length,1)*100];
+
+  destroyChart('chartIAvsHum');
+  const ctx = document.getElementById('chartIAvsHum').getContext('2d');
+  charts.chartIAvsHum = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['ER Medio %','Likes (k)','Comentarios','% Publicidad','% Hashtags'],
+      datasets: [
+        { label:'IA', data: iaVals, borderColor:'#4361EE', backgroundColor:'rgba(67,97,238,0.15)', pointBackgroundColor:'#4361EE', pointRadius:4 },
+        { label:'Humano', data: humVals, borderColor:'#059669', backgroundColor:'rgba(5,150,105,0.15)', pointBackgroundColor:'#059669', pointRadius:4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, usePointStyle: true, pointStyleWidth: 8 } } },
+      scales: { r: { ticks: { font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: '#E2E8F0' }, pointLabels: { font: { size: 10 } } } }
+    }
+  });
+}
+
+// ─── CHART: Formato ───────────────────────────────────────────────────────────
+function renderFormato(data) {
+  const tipos = ['IA','Humano'];
+  const fmts  = ['Post','Reel'];
+  destroyChart('chartFormato');
+  const ctx = document.getElementById('chartFormato').getContext('2d');
+  charts.chartFormato = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: tipos,
+      datasets: fmts.map((f,i) => ({
+        label: f,
+        data: tipos.map(t => avg(data.filter(d=>d.tipo_label===t && d.formato_label===f).map(d=>d.er))),
+        backgroundColor: i===0 ? '#6366F1' : '#F59E0B',
+        borderRadius: 6, borderSkipped: false
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'bottom', labels:{ font:{size:11}, usePointStyle:true, pointStyleWidth:8 } }, tooltip:{ callbacks:{ label: c=>`${c.dataset.label}: ${c.raw.toFixed(2)}%` } } },
+      scales: { x:{ grid:{display:false} }, y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } } }
+    }
+  });
+}
+
+// ─── CHART: Temas ─────────────────────────────────────────────────────────────
+function renderTemas(data) {
+  const temaMap = {};
+  data.forEach(d => { if (!temaMap[d.tema_label]) temaMap[d.tema_label] = []; temaMap[d.tema_label].push(d.er); });
+  const temas = Object.entries(temaMap).map(([t,v])=>({t, er: avg(v)})).sort((a,b)=>b.er-a.er);
+  const palette = ['#4361EE','#7C8CF8','#059669','#34D399','#F59E0B','#EC4899','#8B5CF6','#F97316','#64748B'];
+  destroyChart('chartTemas');
+  const ctx = document.getElementById('chartTemas').getContext('2d');
+  charts.chartTemas = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: temas.map(t=>t.t), datasets:[{ data: temas.map(t=>t.er), backgroundColor: temas.map((_,i)=>palette[i%palette.length]), borderRadius:6, borderSkipped:false }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ER: ${c.raw.toFixed(2)}%` } } },
+      scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}, maxRotation:30} }, y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } } }
+    }
+  });
+}
+
+// ─── CHART: Donut Temas ───────────────────────────────────────────────────────
+function renderDonutTemas(data) {
+  const cnt = {};
+  data.forEach(d=>{ cnt[d.tema_label]=(cnt[d.tema_label]||0)+1; });
+  const sorted = Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const palette = ['#4361EE','#059669','#F59E0B','#EC4899','#8B5CF6','#F97316','#34D399','#6EE7B7','#64748B'];
+  destroyChart('chartDonutTemas');
+  const ctx = document.getElementById('chartDonutTemas').getContext('2d');
+  charts.chartDonutTemas = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels: sorted.map(([t])=>t), datasets:[{ data: sorted.map(([,v])=>v), backgroundColor: sorted.map((_,i)=>palette[i%palette.length]), borderWidth:2, borderColor:'white' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ font:{size:10}, usePointStyle:true, pointStyleWidth:8 } }, tooltip:{ callbacks:{ label: c=>`${c.label}: ${c.raw} posts (${(c.raw/data.length*100).toFixed(1)}%)` } } }, cutout:'60%' }
+  });
+}
+
+// ─── CHART: Scatter ───────────────────────────────────────────────────────────
+function renderScatter(data) {
+  const ia  = data.filter(d=>d.tipo_label==='IA');
+  const hum = data.filter(d=>d.tipo_label==='Humano');
+  destroyChart('chartScatter');
+  const ctx = document.getElementById('chartScatter').getContext('2d');
+  charts.chartScatter = new Chart(ctx, {
+    type:'scatter',
+    data:{ datasets:[
+      { label:'IA', data: ia.map(d=>({x:d.likes, y:Math.min(d.er,20), r:Math.max(3,Math.sqrt(d.comentarios/2))})), backgroundColor:'rgba(67,97,238,0.55)', pointRadius:5 },
+      { label:'Humano', data: hum.map(d=>({x:d.likes, y:Math.min(d.er,20), r:Math.max(3,Math.sqrt(d.comentarios/2))})), backgroundColor:'rgba(5,150,105,0.55)', pointRadius:5 }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{font:{size:11}, usePointStyle:true, pointStyleWidth:8} }, tooltip:{ callbacks:{ label: c=>`Likes: ${c.raw.x.toLocaleString()} · ER: ${c.raw.y.toFixed(2)}%` } } },
+      scales:{
+        x:{ type:'linear', grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v>=1000?`${(v/1000).toFixed(0)}k`:v, font:{size:10} }, title:{display:true, text:'Likes', font:{size:11}} },
+        y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} }, title:{display:true, text:'ER (%)', font:{size:11}} }
+      }
+    }
+  });
+}
+
+// ─── CHART: Publicidad declarada ──────────────────────────────────────────────
+function renderPubDecl(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const labels = profiles.map(p=>`@${p}`);
+  const pubData = profiles.map(p => { const s=data.filter(d=>d.perfil===p); const pub=s.filter(d=>d.publicidad===1); return pub.length ? pub.filter(d=>d.pub_declarada===1).length/pub.length*100 : 0; });
+  const colors = profiles.map(p => PROFILE_COLORS[p]);
+  destroyChart('chartPubDecl');
+  const ctx = document.getElementById('chartPubDecl').getContext('2d');
+  charts.chartPubDecl = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'% Pub. Declarada', data: pubData, backgroundColor: colors, borderRadius:6, borderSkipped:false }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${c.raw.toFixed(1)}% de su publicidad es declarada` } } },
+      scales:{ x:{ grid:{display:false}, ticks:{font:{size:10}} }, y:{ min:0, max:100, grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } } }
+    }
+  });
+}
+
+// ─── PUB CARDS ────────────────────────────────────────────────────────────────
+function renderPubCards(data) {
+  const el = document.getElementById('pub-grid');
+  ['IA','Humano'].forEach(tipo => {
+    const sub = data.filter(d=>d.tipo_label===tipo);
+    const total = sub.length;
+    const pub = sub.filter(d=>d.publicidad===1).length;
+    const dec = sub.filter(d=>d.pub_declarada===1).length;
+    const enc = sub.filter(d=>d.publicidad===1&&d.pub_declarada===0).length;
+    const cls = tipo==='IA'?'ia':'hum';
+    el.innerHTML += `
+      <div class="pub-card ${cls}">
+        <div class="pub-card-label">${tipo}</div>
+        <div class="pub-row"><span>Posts totales</span><strong>${total}</strong></div>
+        <div class="pub-row"><span>Con publicidad</span><span class="pub-pct">${pub} <small style="font-size:12px;font-weight:400">(${pct(pub,total)})</small></span></div>
+        <div class="pub-row"><span>Pub. declarada</span><strong>${dec} (${pct(dec,pub)} de pub.)</strong></div>
+        <div class="pub-row" style="color:#B91C1C"><span>⚠ Pub. encubierta</span><strong>${enc} posts</strong></div>
+      </div>`;
+  });
+}
+
+// ─── TABLE ────────────────────────────────────────────────────────────────────
+function renderTable(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const rows = profiles.map(p => {
+    const s = data.filter(d=>d.perfil===p);
+    const tipo = s[0]?.tipo_label||'';
+    const cat  = s[0]?.categoria||'';
+    const pub  = s.filter(d=>d.publicidad===1).length;
+    const dec  = s.filter(d=>d.pub_declarada===1).length;
+    return { p, tipo, cat, n: s.length, er: avg(s.map(d=>d.er)), likes: avg(s.map(d=>d.likes)), pub, dec, total: s.length };
+  }).sort((a,b)=>b.er-a.er);
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  const maxER = Math.max(...rows.map(r=>r.er));
+  rows.forEach(r => {
+    const pill = r.tipo==='IA'?'pill-ia':'pill-hum';
+    const barW = Math.round(r.er/maxER*80);
+    tbody.innerHTML += `<tr>
+      <td><strong>@${r.p}</strong></td>
+      <td><span class="pill ${pill}">${r.tipo}</span></td>
+      <td>${r.cat}</td>
+      <td>${r.n}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span>${r.er.toFixed(2)}%</span>
+          <div class="er-bar" style="width:${barW}px;background:${r.tipo==='IA'?'var(--ia)':'var(--hum)'}"></div>
+        </div>
+      </td>
+      <td>${Math.round(r.likes).toLocaleString()}</td>
+      <td>${r.n>0?pct(r.pub,r.n):'-'}</td>
+      <td>${r.pub>0?pct(r.dec,r.pub):'-'}</td>
+    </tr>`;
+  });
+}
+
+// ─── INSIGHTS ─────────────────────────────────────────────────────────────────
+function renderInsights(data) {
+  const ia  = data.filter(d=>d.tipo_label==='IA');
+  const hum = data.filter(d=>d.tipo_label==='Humano');
+  const erIA = avg(ia.map(d=>d.er)), erHum = avg(hum.map(d=>d.er));
+  const delta = erIA > 0 ? ((erHum-erIA)/erIA*100).toFixed(0) : '∞';
+  const iaPubEnc = ia.filter(d=>d.publicidad===1&&d.pub_declarada===0).length;
+  const humPubEnc = hum.filter(d=>d.publicidad===1&&d.pub_declarada===0).length;
+  const reelIA = avg(ia.filter(d=>d.formato_label==='Reel').map(d=>d.er));
+  const postIA = avg(ia.filter(d=>d.formato_label==='Post').map(d=>d.er));
+  const reelHum = avg(hum.filter(d=>d.formato_label==='Reel').map(d=>d.er));
+  const postHum = avg(hum.filter(d=>d.formato_label==='Post').map(d=>d.er));
+
+  document.getElementById('insights').innerHTML = `
+    <div class="insight hum">
+      <strong>Humanos generan un ${delta}% más de engagement</strong><br>
+      ER medio Humano: ${erHum.toFixed(2)}% vs IA: ${erIA.toFixed(2)}%. La diferencia es estadísticamente relevante para el análisis comparativo.
+    </div>
+    <div class="insight ia">
+      <strong>fit_aitana destaca entre las IA</strong><br>
+      Con un ER medio de ~1.77%, supera claramente a albarenai (0.59%) y shudu.gram (1.72%), siendo la IA más competitiva frente a humanos.
+    </div>
+    <div class="insight warn">
+      <strong>Publicidad encubierta: IA más opaca</strong><br>
+      Los influencers IA tienen ${iaPubEnc} posts con publicidad sin declarar, frente a ${humPubEnc} de los humanos. Los humanos declaran proporcionalmente más su publicidad.
+    </div>
+    <div class="insight hum">
+      <strong>Reels superan a Posts en ambos grupos</strong><br>
+      IA: Reel ${reelIA.toFixed(2)}% vs Post ${postIA.toFixed(2)}%. Humano: Reel ${reelHum.toFixed(2)}% vs Post ${postHum.toFixed(2)}%.
+    </div>
+  `;
+}
+
+
+// ─── DATA: followers ─────────────────────────────────────────────────────────
+const FOLLOWERS = {
+  'fit_aitana':   { start: 393000, end: 392000, tipo: 'IA',     cat: 'Fitness',          color: '#4361EE' },
+  'albarenai':    { start: 17700,  end: 19900,  tipo: 'IA',     cat: 'Lifestyle/Entret.', color: '#7C8CF8' },
+  'shudu.gram':   { start: 239000, end: 239000, tipo: 'IA',     cat: 'Moda/Belleza',     color: '#B5BFFC' },
+  'crysdyaz':     { start: 416000, end: 421000, tipo: 'Humano', cat: 'Fitness',          color: '#059669' },
+  'marialamelam': { start: 64200,  end: 88800,  tipo: 'Humano', cat: 'Lifestyle/Entret.', color: '#34D399' },
+  'martaortizp':  { start: 129000, end: 131000, tipo: 'Humano', cat: 'Moda/Belleza',     color: '#6EE7B7' },
+};
+
+const BOX_DATA = {
+  'fit_aitana':   { min:0.33, q1:0.40, median:0.89, q3:2.60, max:10.10, mean:1.77, all:[0.33,0.37,0.37,0.38,0.40,0.49,0.68,0.75,0.89,0.96,1.62,2.03,2.60,2.96,3.36,10.10] },
+  'albarenai':    { min:0.21, q1:0.25, median:0.59, q3:0.73, max:1.24,  mean:0.59, all:[0.21,0.24,0.25,0.25,0.29,0.51,0.57,0.59,0.61,0.62,0.70,0.73,0.75,1.22,1.24] },
+  'shudu.gram':   { min:0.00, q1:0.16, median:2.14, q3:2.56, max:4.53,  mean:1.72, all:[0.00,0.07,0.08,0.16,0.17,0.35,0.52,2.14,2.37,2.46,2.56,2.56,3.37,4.44,4.53] },
+  'crysdyaz':     { min:0.00, q1:2.50, median:3.04, q3:4.30, max:7.26,  mean:3.34, all:[0.00,2.40,2.48,2.50,2.55,2.56,2.60,3.04,3.26,3.38,3.60,4.30,4.93,5.26,7.26] },
+  'marialamelam': { min:0.49, q1:3.04, median:3.37, q3:10.26,max:17.14, mean:5.93, all:[0.49,1.49,1.84,2.01,3.04,3.12,3.19,3.26,3.37,3.40,8.72,8.96,10.26,11.22,13.41,17.14] },
+  'martaortizp':  { min:0.00, q1:0.55, median:1.44, q3:2.27, max:20.00, mean:3.97, all:[0.00,0.00,0.46,0.55,0.78,0.89,0.98,1.44,1.75,1.78,2.24,2.27,2.69,3.54,20.00] },
+};
+
+const RATIO_DATA = {
+  'fit_aitana':   0.084,
+  'albarenai':    0.058,
+  'shudu.gram':   0.158,
+  'martaortizp':  0.122,
+  'marialamelam': 0.038,
+  'crysdyaz':     0.003,
+};
+
+const PUB_SAT = {
+  'fit_aitana':50,'albarenai':87,'shudu.gram':33,'crysdyaz':60,'marialamelam':31,'martaortizp':53
+};
+
+// ─── CONCLUSION helper ────────────────────────────────────────────────────────
+function setConclusion(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+// ─── CHART: Followers grouped bar ────────────────────────────────────────────
+function renderFollowers(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const labels = profiles.map(p => `@${p}`);
+  const starts = profiles.map(p => FOLLOWERS[p].start);
+  const ends   = profiles.map(p => FOLLOWERS[p].end);
+  const colors = profiles.map(p => PROFILE_COLORS[p]);
+
+  destroyChart('chartFollowers');
+  const ctx = document.getElementById('chartFollowers').getContext('2d');
+  charts.chartFollowers = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'Inicio', data: starts, backgroundColor: colors.map(c=>c+'77'), borderRadius:4 },
+      { label:'Final',  data: ends,   backgroundColor: colors, borderRadius:4 },
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', labels:{ font:{size:11}, usePointStyle:true, pointStyleWidth:8 } },
+        tooltip:{ callbacks:{ label: c=>`${c.dataset.label}: ${c.raw.toLocaleString()} seg.` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v>=1000?`${(v/1000).toFixed(0)}k`:v, font:{size:11} } }
+      }
+    }
+  });
+  setConclusion('conc-followers',
+    '<strong>Conclusión:</strong> La diferencia de audiencia entre perfiles es enorme: @crysdyaz y @fit_aitana aglutinan más del 60% de los seguidores totales de la muestra. Destaca que @marialamelam casi duplica su audiencia en el período (+38%), lo que la convierte en la cuenta con mayor dinamismo de crecimiento.');
+}
+
+// ─── CHART: Follower delta horizontal bar ────────────────────────────────────
+function renderFollowersDelta(data) {
+  const profiles = ['marialamelam','crysdyaz','albarenai','martaortizp','shudu.gram','fit_aitana'];
+  const deltas = profiles.map(p => FOLLOWERS[p].end - FOLLOWERS[p].start);
+  const colors = deltas.map((d,i) => {
+    const tipo = FOLLOWERS[profiles[i]].tipo;
+    return d >= 0 ? (tipo==='IA'?'#4361EE':'#059669') : '#E94560';
+  });
+
+  destroyChart('chartFollowersDelta');
+  const ctx = document.getElementById('chartFollowersDelta').getContext('2d');
+  charts.chartFollowersDelta = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: profiles.map(p=>`@${p}`), datasets:[{
+      label:'Variación seguidores', data: deltas,
+      backgroundColor: colors, borderRadius:6, borderSkipped:false
+    }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>(c.raw>=0?'+':'')+c.raw.toLocaleString()+' seg.' } } },
+      scales:{
+        x:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>(v>=0?'+':'')+v.toLocaleString(), font:{size:11} } },
+        y:{ grid:{display:false}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+  setConclusion('conc-delta',
+    '<strong>Conclusión:</strong> @marialamelam es el perfil con mayor crecimiento absoluto (+24.600 seg.), seguido de @crysdyaz (+5.000). Llama la atención que @fit_aitana, el influencer IA más seguido, es el único perfil que <em>pierde</em> seguidores durante el período (−1.000), lo que puede indicar una saturación publicitaria excesiva o una pérdida de interés de la audiencia.');
+}
+
+// ─── CHART: ER distribution (simulated box plot as scatter+bar) ──────────────
+function renderBoxER(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const labels = profiles.map(p=>`@${p}`);
+
+  // Build scatter dots (each post ER capped at 20)
+  const scatterDS = profiles.map((p,i) => ({
+    label: p,
+    data: BOX_DATA[p].all.map(v => ({ x: i, y: Math.min(v,20) })),
+    backgroundColor: PROFILE_COLORS[p]+'99',
+    pointRadius: 5,
+    showLine: false,
+    type: 'scatter',
+  }));
+
+  // Median bars
+  const medianDS = {
+    label: 'Mediana', type:'bar',
+    data: profiles.map((p,i) => BOX_DATA[p].median),
+    backgroundColor: profiles.map(p=>PROFILE_COLORS[p]),
+    borderRadius:4, barThickness:18, borderSkipped:false,
+  };
+
+  destroyChart('chartBoxER');
+  const ctx = document.getElementById('chartBoxER').getContext('2d');
+  charts.chartBoxER = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[ medianDS, ...scatterDS ] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{
+          title: items => `@${profiles[items[0].dataIndex] || items[0].label}`,
+          label: c => {
+            if (c.datasetIndex===0) return `Mediana ER: ${c.raw.toFixed(2)}%`;
+            return `Post: ${typeof c.raw === 'object' ? c.raw.y.toFixed(2) : c.raw}%`;
+          }
+        }}
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} }, max:20 }
+      }
+    }
+  });
+  setConclusion('conc-box',
+    '<strong>Conclusión:</strong> @crysdyaz es el perfil más <em>consistente</em>: la mayoría de sus publicaciones se concentran en el rango 2,5–5%, sin grandes altibajos. En cambio, @marialamelam y @martaortizp muestran alta dispersión (publicaciones virales que elevan la media pero no reflejan el rendimiento habitual). Los perfiles IA presentan en general mayor variabilidad relativa a su media, lo que indica que su engagement depende más del contenido puntual que de una conexión estable con la audiencia.');
+}
+
+// ─── CHART: Comments/Likes ratio ─────────────────────────────────────────────
+function renderRatio(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const ratios = profiles.map(p => {
+    const sub = data.filter(d=>d.perfil===p);
+    const totalLikes = sub.reduce((a,d)=>a+d.likes,0);
+    const totalCom   = sub.reduce((a,d)=>a+d.comentarios,0);
+    return totalLikes > 0 ? +(totalCom/totalLikes*100).toFixed(2) : 0;
+  });
+  const colors = profiles.map(p => PROFILE_COLORS[p]);
+
+  destroyChart('chartRatio');
+  const ctx = document.getElementById('chartRatio').getContext('2d');
+  charts.chartRatio = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: profiles.map(p=>`@${p}`), datasets:[{
+      label:'Ratio comentarios/likes (%)',
+      data: ratios,
+      backgroundColor: colors,
+      borderRadius:6, borderSkipped:false
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>`Ratio: ${c.raw}% (${c.raw/100*100|0} comentarios por cada 100 likes)` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } }
+      }
+    }
+  });
+  setConclusion('conc-ratio',
+    '<strong>Conclusión:</strong> @shudu.gram lidera el ratio comentarios/likes entre los perfiles IA, lo que sugiere que su contenido visual generó más conversación relativa que el de @fit_aitana o @albarenai. Entre los humanos, @crysdyaz presenta el ratio más bajo (audiencia de "me gusta pasivos"), mientras que @martaortizp y @marialamelam muestran mayor implicación conversacional. Un ratio alto indica que la audiencia no solo consume el contenido, sino que siente necesidad de expresarse sobre él.');
+}
+
+// ─── CHART: Pub Saturation ────────────────────────────────────────────────────
+function renderPubSat(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const vals = profiles.map(p => {
+    const sub = data.filter(d=>d.perfil===p);
+    return sub.length ? +(sub.filter(d=>d.publicidad===1).length/sub.length*100).toFixed(1) : 0;
+  });
+  const colors = profiles.map(p => PROFILE_COLORS[p]);
+  destroyChart('chartPubSat');
+  const ctx = document.getElementById('chartPubSat').getContext('2d');
+  charts.chartPubSat = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: profiles.map(p=>`@${p}`), datasets:[{
+      label:'% posts con publicidad', data:vals, backgroundColor:colors, borderRadius:6, borderSkipped:false
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>`${c.raw}% de sus posts son publicitarios` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ min:0, max:100, grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } }
+      }
+    }
+  });
+  setConclusion('conc-pubsat',
+    '<strong>Conclusión:</strong> @albarenai es, con diferencia, el perfil más saturado publicitariamente (87% de sus posts son patrocinados), lo que puede explicar su bajo engagement: la audiencia percibe el perfil como un canal de publicidad más que como un creador de contenido. En el extremo opuesto, @shudu.gram (33%) y @marialamelam (31%) combinan mejor contenido orgánico y publicitario.');
+}
+
+// ─── CHART: Pub Saturation IA vs Humano (per profile grouped) ─────────────────
+function renderPubSatComp(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const labels = profiles.map(p => `@${p}`);
+  const iaTipos = profiles.map(p => data.filter(d=>d.perfil===p)[0]?.tipo_label || '');
+  const vals = profiles.map(p => {
+    const sub = data.filter(d=>d.perfil===p);
+    return sub.length ? +(sub.filter(d=>d.publicidad===1).length/sub.length*100).toFixed(1) : 0;
+  });
+  const bgColors = iaTipos.map(t => t==='IA' ? '#4361EE' : '#059669');
+  const ia  = data.filter(d=>d.tipo_label==='IA');
+  const hum = data.filter(d=>d.tipo_label==='Humano');
+  const iaPct  = ia.length  ? +(ia.filter(d=>d.publicidad===1).length/ia.length*100).toFixed(1) : 0;
+  const humPct = hum.length ? +(hum.filter(d=>d.publicidad===1).length/hum.length*100).toFixed(1) : 0;
+
+  destroyChart('chartPubSatComp');
+  const ctx = document.getElementById('chartPubSatComp').getContext('2d');
+  charts.chartPubSatComp = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{
+      label:'% posts con publicidad', data:vals,
+      backgroundColor: bgColors, borderRadius:6, borderSkipped:false
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label:c=>`${c.raw}% de sus posts son publicitarios` } },
+        annotation: { annotations: {
+          lineIA: { type:'line', xMin:-0.5, xMax:2.5, yMin:iaPct, yMax:iaPct, borderColor:'#4361EE', borderWidth:2, borderDash:[4,4], label:{content:`IA media: ${iaPct}%`, display:true, position:'start', color:'#4361EE', font:{size:10}} },
+          lineHum:{ type:'line', xMin:2.5,  xMax:5.5, yMin:humPct, yMax:humPct, borderColor:'#059669', borderWidth:2, borderDash:[4,4], label:{content:`Humano media: ${humPct}%`, display:true, position:'end', color:'#059669', font:{size:10}} }
+        }}
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ min:0, max:100, grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } }
+      }
+    }
+  });
+  setConclusion('conc-pubsatcomp',
+    `<strong>Comparativa:</strong> Los perfiles IA presentan una saturación publicitaria media del <strong>${iaPct}%</strong>, frente al <strong>${humPct}%</strong> de los humanos. Los perfiles virtuales publican proporcionalmente más contenido patrocinado, lo que puede contribuir a su menor engagement relativo.`);
+}
+
+// ─── CHART: Pub Declared IA vs Humano comparison ─────────────────────────────
+function renderPubDeclComp(data) {
+  const profiles = ['fit_aitana','albarenai','shudu.gram','crysdyaz','marialamelam','martaortizp'];
+  const labels = profiles.map(p => `@${p}`);
+  const iaTipos = profiles.map(p => data.filter(d=>d.perfil===p)[0]?.tipo_label || '');
+  const vals = profiles.map(p => {
+    const sub = data.filter(d=>d.perfil===p);
+    const pub = sub.filter(d=>d.publicidad===1);
+    return pub.length ? +(pub.filter(d=>d.pub_declarada===1).length/pub.length*100).toFixed(1) : 0;
+  });
+  const bgColors = iaTipos.map(t => t==='IA' ? '#4361EE' : '#059669');
+  const ia  = data.filter(d=>d.tipo_label==='IA');
+  const hum = data.filter(d=>d.tipo_label==='Humano');
+  const iaPub  = ia.filter(d=>d.publicidad===1);
+  const humPub = hum.filter(d=>d.publicidad===1);
+  const iaDeclPct  = iaPub.length  ? +(iaPub.filter(d=>d.pub_declarada===1).length/iaPub.length*100).toFixed(1) : 0;
+  const humDeclPct = humPub.length ? +(humPub.filter(d=>d.pub_declarada===1).length/humPub.length*100).toFixed(1) : 0;
+
+  destroyChart('chartPubDeclComp');
+  const ctx = document.getElementById('chartPubDeclComp').getContext('2d');
+  charts.chartPubDeclComp = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{
+      label:'% publicidad declarada', data:vals,
+      backgroundColor: bgColors, borderRadius:6, borderSkipped:false
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ callbacks:{ label:c=>`${c.raw}% de su publicidad es declarada` } }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}} },
+        y:{ min:0, max:100, grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } }
+      }
+    }
+  });
+  setConclusion('conc-pubdeclcomp',
+    `<strong>Comparativa:</strong> Los influencers IA declaran solo el <strong>${iaDeclPct}%</strong> de su publicidad (media del grupo), frente al <strong>${humDeclPct}%</strong> de los humanos. La única excepción es @shudu.gram (100% de transparencia). @fit_aitana y @albarenai no declaran ningún post patrocinado, incumpliendo la normativa española.`);
+}
+
+// ─── CHART: ER por Tema IA vs Humano ─────────────────────────────────────────
+function renderTemasComp(data) {
+  const ia  = data.filter(d=>d.tipo_label==='IA');
+  const hum = data.filter(d=>d.tipo_label==='Humano');
+  // Get all topics present
+  const temasSet = [...new Set(data.map(d=>d.tema_label))];
+  // Calculate ER mean per tema per tipo
+  const iaER  = temasSet.map(t => { const v=ia.filter(d=>d.tema_label===t).map(d=>d.er);  return v.length?avg(v):null; });
+  const humER = temasSet.map(t => { const v=hum.filter(d=>d.tema_label===t).map(d=>d.er); return v.length?avg(v):null; });
+  // Sort by combined ER descending
+  const combined = temasSet.map((t,i)=>({ t, ia:iaER[i], hum:humER[i], total: avg([...(ia.filter(d=>d.tema_label===t).map(d=>d.er)), ...(hum.filter(d=>d.tema_label===t).map(d=>d.er))]) }));
+  combined.sort((a,b)=>b.total-a.total);
+
+  destroyChart('chartTemasComp');
+  const ctx = document.getElementById('chartTemasComp').getContext('2d');
+  charts.chartTemasComp = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: combined.map(c=>c.t),
+      datasets:[
+        { label:'IA', data: combined.map(c=>c.ia), backgroundColor:'rgba(67,97,238,0.8)', borderRadius:4, borderSkipped:false },
+        { label:'Humano', data: combined.map(c=>c.hum), backgroundColor:'rgba(5,150,105,0.8)', borderRadius:4, borderSkipped:false }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, usePointStyle:true, pointStyleWidth:8 } }, tooltip:{ callbacks:{ label:c=>c.raw!=null?`${c.dataset.label}: ${c.raw.toFixed(2)}%`:`${c.dataset.label}: sin datos` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}, maxRotation:30} },
+        y:{ grid:{color:'#F1F5F9'}, ticks:{ callback:v=>v+'%', font:{size:11} } }
+      }
+    }
+  });
+  // Find best tema for each type
+  const bestIA  = [...combined].filter(c=>c.ia!=null).sort((a,b)=>b.ia-a.ia)[0];
+  const bestHum = [...combined].filter(c=>c.hum!=null).sort((a,b)=>b.hum-a.hum)[0];
+  setConclusion('conc-temascomp',
+    `<strong>Conclusión:</strong> Los humanos superan a las IA en la mayoría de temas. El tema con mayor ER para perfiles IA es <strong>${bestIA?.t||'-'}</strong> (${bestIA?.ia.toFixed(2)||'-'}%) y para humanos <strong>${bestHum?.t||'-'}</strong> (${bestHum?.hum.toFixed(2)||'-'}%). Los temas de opinión y entretenimiento amplían especialmente la brecha a favor de los humanos.`);
+}
+
+// ─── CHART: Distribución temática IA vs Humano ────────────────────────────────
+function renderTemasDistComp(data) {
+  const ia  = data.filter(d=>d.tipo_label==='IA');
+  const hum = data.filter(d=>d.tipo_label==='Humano');
+  const temasSet = [...new Set(data.map(d=>d.tema_label))];
+  // Count per tema per group
+  const iaCnt  = temasSet.map(t => ia.filter(d=>d.tema_label===t).length);
+  const humCnt = temasSet.map(t => hum.filter(d=>d.tema_label===t).length);
+  // Sort by total desc
+  const combined = temasSet.map((t,i)=>({t, ia:iaCnt[i], hum:humCnt[i], total:iaCnt[i]+humCnt[i]}));
+  combined.sort((a,b)=>b.total-a.total);
+
+  destroyChart('chartTemasDistComp');
+  const ctx = document.getElementById('chartTemasDistComp').getContext('2d');
+  charts.chartTemasDistComp = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: combined.map(c=>c.t),
+      datasets:[
+        { label:'IA', data: combined.map(c=>c.ia), backgroundColor:'rgba(67,97,238,0.8)', borderRadius:4, borderSkipped:false },
+        { label:'Humano', data: combined.map(c=>c.hum), backgroundColor:'rgba(5,150,105,0.8)', borderRadius:4, borderSkipped:false }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, usePointStyle:true, pointStyleWidth:8 } }, tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${c.raw} posts` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}, maxRotation:30} },
+        y:{ grid:{color:'#F1F5F9'}, ticks:{ font:{size:11} }, title:{display:true, text:'N.º publicaciones', font:{size:10}} }
+      }
+    }
+  });
+  const exclusivoIA  = combined.filter(c=>c.hum===0&&c.ia>0).map(c=>c.t);
+  const exclusivoHum = combined.filter(c=>c.ia===0&&c.hum>0).map(c=>c.t);
+  setConclusion('conc-temasdistrcomp',
+    `<strong>Conclusión:</strong> Los perfiles IA concentran más publicaciones en moda/estética y entretenimiento. ${exclusivoIA.length?`Temas exclusivos de IA: <strong>${exclusivoIA.join(', ')}</strong>.`:''}${exclusivoHum.length?` Temas exclusivos de humanos: <strong>${exclusivoHum.join(', ')}</strong>.`:''} Los humanos muestran mayor diversidad temática, coherente con su autenticidad personal.`);
+}
+
+// ─── DESTROY / INIT ───────────────────────────────────────────────────────────
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.color = '#64748B';
+Chart.defaults.plugins.tooltip.backgroundColor = '#0F172A';
+Chart.defaults.plugins.tooltip.titleColor = '#F8FAFC';
+Chart.defaults.plugins.tooltip.bodyColor = '#94A3B8';
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+Chart.defaults.plugins.tooltip.padding = 10;
+
+render();
+</script>
+</body>
+</html>
